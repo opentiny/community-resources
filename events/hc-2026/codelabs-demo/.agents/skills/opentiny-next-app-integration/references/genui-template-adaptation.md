@@ -56,6 +56,8 @@ diff -ru "$SKILL_DIR/assets/genui-v1.3.0/genui" "$TARGET_APP_DIR/src/tiny-robot-
 - 把 GenUI renderer match 合并到现有 bubble provider；
 - 在现有 sender footer 中挂载 `GenuiSwitch`。
 
+`GenuiProvider` 的异步加载必须位于 schema-card renderer 路径中，和 renderer 并行加载；不能用异步 Provider 包裹整个 `TrChat`，否则首次打开聊天会等待 materials 大 chunk，加载失败还会让普通聊天不可用。
+
 模板中可能出现类似接线：
 
 ```ts

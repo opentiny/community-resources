@@ -15,6 +15,8 @@
 
 常见公开能力包括 `registerPageAgentTool()`、`getPageAgentToolConfig()`、`setPageAgentToolConfig()`、`buildA11yTree()` 和 `searchA11yTree()`，动作可能包括观察、搜索、点击、滚动、填写、选择或脚本执行。只使用目标版本实际提供的能力。
 
+已验证的 `@opentiny/next-sdk@0.4.11` 中，`registerPageAgentTool()` 会自行调用 `initializeBuiltinWebMCP()`，公开 action 为 `browserState`、`searchTree`、`click`、`scroll`、`hover`、`fill`、`select`、`executeJavascript`、`clipboard`，且没有 `setNavigator` 导出。命中该精确版本时直接使用版本化资产，不再扫描整个 bundle；其他 `0.4.x` 仍需核对实际导出和 schema。
+
 如果点击、填写或选择依赖最近一次语义树返回的临时 ref，动作前先重新观察；页面变化后旧 ref 不再作为可靠定位依据。
 
 目标版本支持 `removeMaskAfterToolCall` 或等价配置时显式开启，并确认工具成功、拒绝或异常后不会留下 PageTool 光标或遮罩。不同版本字段不同，不凭模板名称假定支持。
@@ -81,7 +83,7 @@ SDK 中名为 `whitelist` 的配置不一定代表访问控制。检查其实际
 
 工具未注册、动作未知、目标未声明、ref 过期、SDK 校验失败和浏览器异常应明确反馈。不要吞掉错误、返回空对象或声称页面已经变化。
 
-`page-agent-tool` 是独立 MCP 工具；`browserState`、`searchTree`、`click`、`scroll`、`fill`、`select` 等是它的 action。业务工具名、MCP 工具名、`select_skills` 和 `call_tool` 都不能作为 PageTool action。adapter 的模型可见说明应明确这个调用形状，并使用实际 `listTools` 返回的工具名，不发明额外的嵌套工具。
+`page-agent-tool` 是独立 MCP 工具；`browserState`、`searchTree`、`click`、`scroll`、`hover`、`fill`、`select` 等是它的 action。业务工具名、MCP 工具名、`select_skills` 和 `call_tool` 都不能作为 PageTool action。adapter 的模型可见说明应明确这个调用形状，并使用实际 `listTools` 返回的工具名，不发明额外的嵌套工具。
 
 观察或搜索成功后保存该次语义树对应的 ref 映射；点击、滚动、填写、选择或页面变化后立即清除旧映射。导航和表单动作必须同时满足：存在最新观察、ref 有效、元素仍连接页面、稳定 target ID 与动作合同匹配。不能只根据数字 index 授权。
 

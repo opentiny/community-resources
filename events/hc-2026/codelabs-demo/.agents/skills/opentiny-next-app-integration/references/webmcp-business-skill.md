@@ -39,6 +39,8 @@ const app = createApp(App)
 
 只有实际解析版本和公开类型与模板匹配时才复制并合并；不匹配时把模板作为数据流参考，逐项适配。
 
+精确命中 `@opentiny/next-sdk@0.4.11` 与 `@opentiny/tiny-robot-chat@0.5.2-alpha.10` 时，版本化资产已经包含异步工具发现、九种 PageTool action、向上解析稳定 target、schema 收窄和 ref 失效处理。除非 lockfile 变化或类型检查给出证据，不重复从 minified bundle 调查这些事实。
+
 ## 职责边界
 
 ### Agent 接入通用基础设施
