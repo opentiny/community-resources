@@ -6,6 +6,14 @@ outline: [1, 3]
 
 本手册将通过四步实操，为现有 Vue 3 + Vite 业务应用添加 TinyRobot Chat、GenUI、业务 WebMCP 与 WebSkills，以及 PageTool。
 
+## 推荐：一次完成完整体验
+
+如果目标是尽快得到可运行的完整 Demo，建议只发送一次下面的指令。Agent 会按四阶段依赖顺序实现，但只做一次项目扫描、依赖安装和最终验证：
+
+> /opentiny-next-app-integration 按 docs/opentiny-next-guide.md 的已确认业务定义，一次完成当前项目的 TinyRobot Chat、GenUI、订单 WebMCP/WebSkills 和 PageTool 四个阶段。复用项目 AGENTS.md 的版本矩阵和快速路径；合并依赖安装，源码定稿后只运行一次 test、typecheck 和 build；不要发送模型消息或调用远程服务。
+
+下面的 Step 1–4 仍适合分步演示或只接入部分能力。若分四次发送指令，Agent 会重复加载上下文和执行部分验证，等待时间与 token 消耗都会更高。
+
 ## 环境准备
 
 - 码道 Agent 开发工具。
@@ -352,6 +360,8 @@ PageTool 接入完成后，开发者需要补充两部分代码：
 
 1. **配置页面访问范围**：在真实业务页面中标记允许 PageTool 查询、定位或导航的元素，并按需排除不允许访问的区域。
 2. **编写 PageTool Skill**：在 `src/skills/<业务名>/SKILL.md` 中说明允许处理的用户意图、页面目标、操作流程和安全边界。
+
+为避免体验过程中因动态 ref 或组件内部元素变化触发“目标未声明”错误，本 Demo 默认不在 adapter 层配置 action/target allowlist。`data-page-tool-*` 只作为稳定语义提示；生产项目如需执行授权，再显式接入 skill 提供的 `action-policy`。
 
 ### 配置页面访问范围
 
