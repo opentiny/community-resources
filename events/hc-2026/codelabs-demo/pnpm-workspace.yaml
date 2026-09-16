@@ -1,2 +1,4 @@
 allowBuilds:
   esbuild: true
+overrides:
+  '@opentiny/vue-theme': 3.31.1

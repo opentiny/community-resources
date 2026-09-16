@@ -1,5 +1,10 @@
 <template>
-  <div class="orders-view">
+  <div
+    class="orders-view"
+    data-page-tool-id="orders-page"
+    data-page-tool-action="query"
+    aria-label="订单管理页面"
+  >
     <div class="page-header">
       <div class="header-left">
         <h2>订单管理</h2>
@@ -19,7 +24,12 @@
       </div>
     </div>
 
-    <div class="table-container">
+    <div
+      class="table-container"
+      data-page-tool-id="orders-list"
+      data-page-tool-action="navigation"
+      aria-label="订单列表"
+    >
       <tiny-grid :data="filteredOrders" border resizable>
         <tiny-grid-column type="index" width="60" />
         <tiny-grid-column field="id" title="订单号" width="150">
@@ -51,11 +61,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { orderList, type OrderItem } from '../../mock'
+import { filteredOrders, orderFilterStatus, orderSearchText } from '../../business/orders'
 
-const searchText = ref('')
-const filterStatus = ref('')
+const searchText = orderSearchText
+const filterStatus = orderFilterStatus
 
 const statusOptions = [
   { label: '待发货', value: 'Pending' },
@@ -72,18 +81,6 @@ const statusLabelMap: Record<string, string> = {
   Refunded: '已退款',
   Cancelled: '已取消'
 }
-
-const filteredOrders = computed(() => {
-  return orderList.value.filter((o) => {
-    const matchStatus = !filterStatus.value || o.status === filterStatus.value
-    const searchLower = searchText.value.toLowerCase()
-    const matchSearch =
-      !searchText.value ||
-      o.id.toLowerCase().includes(searchLower) ||
-      o.customerName.toLowerCase().includes(searchLower)
-    return matchStatus && matchSearch
-  })
-})
 
 </script>
 

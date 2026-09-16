@@ -36,7 +36,14 @@
               <component :is="IconLock" class="icon" />
               价保监控
             </router-link>
-            <router-link to="/orders" class="nav-item" active-class="active">
+            <router-link
+              to="/orders"
+              class="nav-item"
+              active-class="active"
+              data-page-tool-id="orders-navigation"
+              data-page-tool-action="navigation"
+              aria-label="进入订单管理"
+            >
               <component :is="IconShoppingCard" class="icon" />
               订单管理
             </router-link>
@@ -70,12 +77,13 @@
         </main>
       </div>
     </div>
-
+    <TinyRobotChat />
   </div>
 </template>
 
 <script setup lang="ts">
 import { iconDesktopView, iconBoxSolid, iconLock, iconLineChart, iconCoin, iconShoppingCard } from '@opentiny/vue-icon'
+import TinyRobotChat from './TinyRobotChat.vue'
 
 const IconDesktopView = iconDesktopView()
 const IconBoxSolid = iconBoxSolid()
