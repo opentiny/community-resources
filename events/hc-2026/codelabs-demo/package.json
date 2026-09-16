@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "setup:skills": "node scripts/setup-skill-links.mjs",
+    "postinstall": "node scripts/setup-skill-links.mjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
