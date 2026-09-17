@@ -5,23 +5,33 @@ import type {
   UseLocalChatRuntimeMcpAdapter,
 } from '@opentiny/tiny-robot-chat'
 import { ref } from 'vue'
-import type { PageToolPolicy, PageToolTarget } from '../pagetool/action-policy.ts'
+import type { WebMcpToolDescriptor } from './webmcp-types.ts'
+import {
+  executeModelContextTool,
+  getModelContext,
+  listModelContextTools,
+} from './webmcp-types.ts'
 import {
   describePageToolPolicy,
-  isPageToolQueryAction,
   restrictPageToolInputSchema,
   validatePageToolAction,
+  type PageToolAction,
+  type PageToolPolicy,
+  type PageToolTarget,
 } from '../pagetool/action-policy.ts'
-import type { WebMcpToolDescriptor } from './webmcp-types.ts'
-import { executeModelContextTool, getModelContext, listModelContextTools } from './webmcp-types.ts'
 
 export const WEBMCP_SERVER_ID = 'browser-webmcp'
 const DEFAULT_PAGE_TOOL_NAME = 'page-agent-tool'
-
+const PAGE_TOOL_QUERY_ACTIONS = ['browserState', 'searchTree'] as const
 
 export interface PageToolAdapterOptions {
   policy: PageToolPolicy
   toolName?: string
+  afterAction?: (context: {
+    action: PageToolAction
+    target?: PageToolTarget
+    result: unknown
+  }) => Promise<void> | void
 }
 
 export interface CreateWebMcpAdapterOptions {
@@ -71,7 +81,10 @@ export function createWebMcpAdapter(options: CreateWebMcpAdapterOptions = {}): W
   async function capturePageToolRefs(): Promise<void> {
     if (typeof document === 'undefined' || !document.body) return
     const { buildA11yTree, getPageAgentToolConfig } = await import('@opentiny/next-sdk')
-    observedPageToolRefs = buildA11yTree(document.body, getPageAgentToolConfig().a11yConfig).refMap
+    observedPageToolRefs = buildA11yTree(
+      document.body,
+      getPageAgentToolConfig().a11yConfig,
+    ).refMap
     hasFreshPageToolObservation = true
   }
 
@@ -79,10 +92,8 @@ export function createWebMcpAdapter(options: CreateWebMcpAdapterOptions = {}): W
     if (typeof index !== 'number' || !Number.isInteger(index) || index < 0) return undefined
     const element = observedPageToolRefs.get(index)
     if (!element?.isConnected) return undefined
-    const owner = element.closest?.('[data-page-tool-id]') ?? element
-    if (!owner) return undefined
-    const id = owner.getAttribute('data-page-tool-id')
-    const action = owner.getAttribute('data-page-tool-action')
+    const id = element.getAttribute('data-page-tool-id')
+    const action = element.getAttribute('data-page-tool-action')
     return id && action ? { id, action } : undefined
   }
 
@@ -102,7 +113,7 @@ export function createWebMcpAdapter(options: CreateWebMcpAdapterOptions = {}): W
     tools.value = {
       [WEBMCP_SERVER_ID]: descriptors.map((descriptor) => ({
         id: descriptor.name,
-        name: descriptor.title || descriptor.name,
+        name: descriptor.title ?? descriptor.name,
         description: descriptor.description,
         enabled: previous.get(descriptor.name) ?? true,
       })),
@@ -126,16 +137,16 @@ export function createWebMcpAdapter(options: CreateWebMcpAdapterOptions = {}): W
     tools,
     async addServer(serverId) {
       assertServerId(serverId)
-      servers.value = [{ ...servers.value[0]!, installed: true, enabled: true, error: undefined }]
+      servers.value = [{ ...servers.value[0], installed: true, enabled: true, error: undefined }]
       await refreshTools()
     },
     removeServer(serverId) {
       assertServerId(serverId)
-      servers.value = [{ ...servers.value[0]!, installed: false, enabled: false }]
+      servers.value = [{ ...servers.value[0], installed: false, enabled: false }]
     },
     async setServerEnabled(serverId, enabled) {
       assertServerId(serverId)
-      servers.value = [{ ...servers.value[0]!, enabled }]
+      servers.value = [{ ...servers.value[0], enabled }]
       if (enabled) await refreshTools()
     },
     setToolEnabled(serverId, toolId, enabled) {
@@ -184,18 +195,22 @@ export function createWebMcpAdapter(options: CreateWebMcpAdapterOptions = {}): W
     },
     async callTool(serverId, toolName, args) {
       assertServerId(serverId)
+      let pageToolAction: PageToolAction | undefined
+      let pageToolTarget: PageToolTarget | undefined
       if (isConfiguredPageTool(toolName)) {
+        pageToolTarget = resolvePageToolTarget(args.index)
         const policyResult = validatePageToolAction(
           args,
           {
             hasFreshObservation: hasFreshPageToolObservation,
-            target: resolvePageToolTarget(args.index),
+            target: pageToolTarget,
           },
           options.pageTool!.policy,
         )
         if (!policyResult.allowed) {
           throw new Error(`PageTool action rejected: ${policyResult.reason}`)
         }
+        pageToolAction = args.action as PageToolAction
       }
       const modelContext = getModelContext()
       if (!modelContext) {
@@ -206,11 +221,24 @@ export function createWebMcpAdapter(options: CreateWebMcpAdapterOptions = {}): W
       if (!descriptor) throw new Error(`WebMCP tool not found: ${toolName}`)
       const result = await executeModelContextTool(modelContext, descriptor, args)
 
-      if (isConfiguredPageTool(toolName) && isPageToolQueryAction(args.action)) {
+      if (
+        isConfiguredPageTool(toolName) &&
+        PAGE_TOOL_QUERY_ACTIONS.includes(
+          args.action as (typeof PAGE_TOOL_QUERY_ACTIONS)[number],
+        )
+      ) {
         await capturePageToolRefs()
       } else {
         observedPageToolRefs.clear()
         hasFreshPageToolObservation = false
+      }
+
+      if (pageToolAction) {
+        await options.pageTool?.afterAction?.({
+          action: pageToolAction,
+          target: pageToolTarget,
+          result,
+        })
       }
 
       return result

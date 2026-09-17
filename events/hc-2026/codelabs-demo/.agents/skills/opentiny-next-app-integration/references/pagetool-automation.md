@@ -13,13 +13,11 @@
 - 高亮、遮罩以及工具调用完成后的清理配置；
 - 是否提供动作授权、调用前钩子、确认机制和注销 API。
 
-常见公开能力包括 `registerPageAgentTool()`、`getPageAgentToolConfig()`、`setPageAgentToolConfig()`、`buildA11yTree()` 和 `searchA11yTree()`，动作可能包括观察、搜索、点击、滚动、填写、选择或脚本执行。只使用目标版本实际提供的能力。
-
-已验证的 `@opentiny/next-sdk@0.4.11` 中，`registerPageAgentTool()` 会自行调用 `initializeBuiltinWebMCP()`，公开 action 为 `browserState`、`searchTree`、`click`、`scroll`、`hover`、`fill`、`select`、`executeJavascript`、`clipboard`，且没有 `setNavigator` 导出。命中该精确版本时直接使用版本化资产，不再扫描整个 bundle；其他 `0.4.x` 仍需核对实际导出和 schema。
+常见公开能力包括 `registerPageAgentTool()`、`getPageAgentToolConfig()`、`setPageAgentToolConfig()`、`buildA11yTree()` 和 `searchA11yTree()`，动作可能包括观察、搜索、点击、滚动、悬停、填写、选择、脚本执行或剪贴板访问。只使用目标版本实际提供的能力。
 
 如果点击、填写或选择依赖最近一次语义树返回的临时 ref，动作前先重新观察；页面变化后旧 ref 不再作为可靠定位依据。
 
-目标版本支持 `removeMaskAfterToolCall` 或等价配置时显式开启，并确认工具成功、拒绝或异常后不会留下 PageTool 光标或遮罩。不同版本字段不同，不凭模板名称假定支持。
+目标版本支持 `removeMaskAfterToolCall` 或等价配置时显式开启，并确认工具成功、拒绝或异常后不会留下 PageTool 光标或遮罩。支持 `cursorMode` 时默认使用 `actionOnly`：观察和搜索不展示 AI 光标，点击、填写、选择或悬停等操作期间展示，步骤结束后收起。只有用户明确要求隐藏操作光标时才使用 `never`；不要以清理遮罩为由关闭操作反馈。不同版本字段不同，不凭模板名称假定支持。
 
 ## 业务方需要声明的内容
 
@@ -63,11 +61,11 @@ SDK 中名为 `whitelist` 的配置不一定代表访问控制。检查其实际
 | 查询 | 页面观察、语义搜索 | 只允许已声明的安全范围；无范围时拒绝或返回不含业务内容的结构化结果 |
 | 导航 | 滚动、点击安全页内目标 | 业务声明目标后允许，动作后重新观察 |
 | 表单 | 填写、选择 | 仅对业务方明确开放并有合同的表单允许 |
-| 副作用 | 脚本执行、提交、删除、外部写入 | 默认拒绝，改用专用业务工具 |
+| 副作用 | 脚本执行、剪贴板访问、提交、删除、外部写入 | 默认拒绝，改用专用业务工具 |
 
 提示词说明不能代替执行层策略。若 SDK 没有原生动作 allowlist 或调用前钩子，TinyRobot adapter 必须在调用真实 descriptor 前校验动作类别和目标声明。
 
-同时收窄模型可见的 PageTool `inputSchema`：根据业务策略替换 `properties.action.enum`，只暴露当前确实可执行的 action。没有开放表单或脚本执行时，不把 `fill`、`select`、`executeJavascript` 提供给模型。schema 用于减少错误生成，adapter 执行前校验仍是最终授权边界。
+同时收窄模型可见的 PageTool `inputSchema`：根据业务策略替换 `properties.action.enum`，只暴露当前确实可执行的 action。没有开放表单时，不把 `fill`、`select` 提供给模型；`executeJavascript` 和 `clipboard` 默认不向模型开放。schema 用于减少错误生成，adapter 执行前校验仍是最终授权边界。
 
 提交、删除、发布、支付或外部系统写入应使用专用业务 WebMCP 工具，在参数和执行层携带稳定业务 ID、权限与确认合同。不能把聊天中出现过确认文字当成已完成权限校验。
 
@@ -83,7 +81,7 @@ SDK 中名为 `whitelist` 的配置不一定代表访问控制。检查其实际
 
 工具未注册、动作未知、目标未声明、ref 过期、SDK 校验失败和浏览器异常应明确反馈。不要吞掉错误、返回空对象或声称页面已经变化。
 
-`page-agent-tool` 是独立 MCP 工具；`browserState`、`searchTree`、`click`、`scroll`、`hover`、`fill`、`select` 等是它的 action。业务工具名、MCP 工具名、`select_skills` 和 `call_tool` 都不能作为 PageTool action。adapter 的模型可见说明应明确这个调用形状，并使用实际 `listTools` 返回的工具名，不发明额外的嵌套工具。
+`page-agent-tool` 是独立 MCP 工具；`browserState`、`searchTree`、`click`、`scroll`、`hover`、`fill`、`select`、`executeJavascript`、`clipboard` 等是它的 action。业务工具名、MCP 工具名、`select_skills` 和 `call_tool` 都不能作为 PageTool action。adapter 的模型可见说明应明确这个调用形状，并使用实际 `listTools` 返回的工具名，不发明额外的嵌套工具。
 
 观察或搜索成功后保存该次语义树对应的 ref 映射；点击、滚动、填写、选择或页面变化后立即清除旧映射。导航和表单动作必须同时满足：存在最新观察、ref 有效、元素仍连接页面、稳定 target ID 与动作合同匹配。不能只根据数字 index 授权。
 
@@ -103,15 +101,21 @@ policy 是项目业务合同的一部分，应由同一份共享配置驱动 ada
 
 ## 跨路由组合
 
-当验收要求一条用户消息先导航、再调用业务工具时，读取 [业务 WebMCP](webmcp-business-skill.md) 的注册作用域规则。若当前 TinyRobot 在用户轮次开始时形成工具快照，后续需要调用的业务 descriptor 必须在轮次开始前应用级注册；不能只依赖目标页面挂载后的 `toolchange`。
+当验收要求一条用户消息先导航、再调用业务工具时，读取 [业务 WebMCP](webmcp-business-skill.md) 的动态工具接线规则，并区分三个独立信号：
+
+- `toolchange` 更新 adapter 目录和 MCP 面板；
+- 导航后的页面就绪等待保证目标 descriptor 已注册；
+- 每次模型请求重新列举工具，保证后续 `requestNext()` 实际携带新 descriptor。
+
+PageTool adapter 应允许项目注入导航动作完成后的异步 ready 回调。回调根据已验证的稳定 target ID 选择路由工具映射，并使用目标 SDK 的 `waitForRouteTools()` 或等价公开 API；只有目标页面所需工具全部出现后，PageTool 调用才返回。路由、target 和业务工具名属于项目配置，不能写入通用资产。
 
 通用组合流程为：
 
-1. 业务工具发现当前路由不满足执行条件时，返回明确的路由前置条件；
-2. 模型调用 PageTool 观察页面，并只操作已声明的导航目标；
-3. 导航完成后旧 ref 失效，需要继续页面交互时重新观察；
-4. 模型重新调用原业务工具，由业务状态或 API 完成数据查询和页面定位；
-5. 未开放表单动作时，不通过填写搜索框模拟业务工具执行。
+1. 模型调用 PageTool 观察页面，并只操作已声明的导航目标；
+2. PageTool 执行导航，立即使旧 ref 失效，并等待目标页面所需 descriptor 注册；
+3. 下一次模型请求重新列举当前工具，再调用目标页面的专用业务工具；
+4. 业务工具由业务状态或 API 完成数据查询和页面定位；
+5. 专用业务工具结果已经足以完成用户目标时直接回答，不用 PageTool 搜索或读取页面重复确认；仅当结果不足、工具报告失败，或用户目标仍要求额外且已授权的页面交互时，才重新观察。未开放表单动作时，不通过填写搜索框模拟业务工具执行。
 
 路由前置条件在目标合同支持时应包含稳定错误码、所需路由或 target ID、以及需要重试的工具；不支持结构化字段时返回含义等价的清晰文本。前置条件不是业务成功结果。
 
@@ -136,6 +140,7 @@ policy 是项目业务合同的一部分，应由同一份共享配置驱动 ada
 - 页面变化后重新观察；
 - 当前开放与禁止的动作类别；
 - 副作用操作必须走带确认合同的专用工具；
+- 专用业务工具结果已经足以完成用户目标时直接回答，不再用 PageTool 重复验证；
 - 反馈必须对应真实工具结果，错误不能冒充成功。
 
 ## 验证

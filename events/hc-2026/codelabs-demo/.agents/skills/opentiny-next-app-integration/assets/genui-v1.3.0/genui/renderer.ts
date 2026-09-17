@@ -6,7 +6,6 @@ import {
 } from '@opentiny/tiny-robot'
 import { defineAsyncComponent, defineComponent, h, type ComputedRef } from 'vue'
 
-
 const GenuiCard = defineAsyncComponent(async () => {
   const [{ GenuiRenderer: Renderer }, { default: Provider }] = await Promise.all([
     import('@opentiny/genui-sdk-vue/renderer'),

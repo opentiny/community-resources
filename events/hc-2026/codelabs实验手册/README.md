@@ -357,6 +357,8 @@ PageTool 接入完成后，开发者需要补充两部分代码：
 1. **配置页面访问范围**：在真实业务页面中标记允许 PageTool 查询、定位或导航的元素，并按需排除不允许访问的区域。
 2. **编写 PageTool Skill**：在 `src/skills/<业务名>/SKILL.md` 中说明允许处理的用户意图、页面目标、操作流程和安全边界。
 
+补充下面的页面目标时，使用同一份 action/target 声明配置 adapter policy，并与实际交互元素上的 `data-page-tool-*` 保持一致。页面属性提供稳定语义，adapter policy 负责执行前授权，两者不能互相替代。
+
 ### 配置页面访问范围
 
 标记可访问元素时，使用 `data-page-tool-*` 属性：
@@ -504,6 +506,7 @@ Skill 中的目标和动作必须与页面代码一致。提交、删除、发�
 - 在 src/views/orders/index.vue 添加 orders-page，允许 query。
 - 在订单列表添加 orders-list，允许 navigation，仅用于滚动定位。
 - 在 src/App.vue 的“订单管理”导航添加 orders-navigation，允许 navigation。
+- 使用同一份 action/target 声明配置 adapter 的 PageTool policy，并与页面上的 data-page-tool-* 保持一致。
 - 在 src/skills/orders/SKILL.md 中补充上述页面目标、业务工具边界和禁止操作。
 - PageTool 只负责已声明的页面查询和导航；查询订单数据并在页面中定位订单时，使用 order_query 或 order_detail。
 - order_detail 已返回页面筛选结果时，无需使用 PageTool 重复确认；其他未完成任务不受此限制。

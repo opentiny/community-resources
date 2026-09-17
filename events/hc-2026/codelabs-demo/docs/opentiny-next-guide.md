@@ -10,7 +10,7 @@ outline: [1, 3]
 
 如果目标是尽快得到可运行的完整 Demo，建议只发送一次下面的指令。Agent 会按四阶段依赖顺序实现，但只做一次项目扫描、依赖安装和最终验证：
 
-> /opentiny-next-app-integration 按 docs/opentiny-next-guide.md 的已确认业务定义，一次完成当前项目的 TinyRobot Chat、GenUI、订单 WebMCP/WebSkills 和 PageTool 四个阶段。复用项目 AGENTS.md 的版本矩阵和快速路径；合并依赖安装，源码定稿后只运行一次 test、typecheck 和 build；不要发送模型消息或调用远程服务。
+> /opentiny-next-app-integration 按 docs/opentiny-next-guide.md 的已确认业务定义，一次完成当前项目的 TinyRobot Chat、GenUI、订单 WebMCP/WebSkills 和 PageTool 四个阶段。复用项目 AGENTS.md 的版本矩阵和快速路径；合并依赖安装，源码定稿后按项目实际入口统一完成类型检查和生产构建；不要发送模型消息或调用远程服务。
 
 下面的 Step 1–4 仍适合分步演示或只接入部分能力。若分四次发送指令，Agent 会重复加载上下文和执行部分验证，等待时间与 token 消耗都会更高。
 
@@ -365,7 +365,7 @@ PageTool 接入完成后，开发者需要补充两部分代码：
 1. **配置页面访问范围**：在真实业务页面中标记允许 PageTool 查询、定位或导航的元素，并按需排除不允许访问的区域。
 2. **编写 PageTool Skill**：在 `src/skills/<业务名>/SKILL.md` 中说明允许处理的用户意图、页面目标、操作流程和安全边界。
 
-为避免体验过程中因动态 ref 或组件内部元素变化触发“目标未声明”错误，本 Demo 默认不在 adapter 层配置 action/target allowlist。`data-page-tool-*` 只作为稳定语义提示；生产项目如需执行授权，再显式接入 skill 提供的 `action-policy`。
+补充下面的页面目标时，使用同一份 action/target 声明配置 adapter policy，并与实际交互元素上的 `data-page-tool-*` 保持一致。页面属性提供稳定语义，adapter policy 负责执行前授权，两者不能互相替代。
 
 ### 配置页面访问范围
 
@@ -514,6 +514,7 @@ Skill 中的目标和动作必须与页面代码一致。提交、删除、发�
 - 在 src/views/orders/index.vue 添加 orders-page，允许 query。
 - 在订单列表添加 orders-list，允许 navigation，仅用于滚动定位。
 - 在 src/App.vue 的“订单管理”导航添加 orders-navigation，允许 navigation。
+- 使用同一份 action/target 声明配置 adapter 的 PageTool policy，并与页面上的 data-page-tool-* 保持一致。
 - 在 src/skills/orders/SKILL.md 中补充上述页面目标、业务工具边界和禁止操作。
 - PageTool 只负责已声明的页面查询和导航；查询订单数据并在页面中定位订单时，使用 order_query 或 order_detail。
 - order_detail 已返回页面筛选结果时，无需使用 PageTool 重复确认；其他未完成任务不受此限制。
